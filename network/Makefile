@@ -3,15 +3,19 @@ export AWS_DEFAULT_REGION=ap-southeast-2
 AWS_IMAGE=public.ecr.aws/dnxsolutions/aws-v2:2.2.9-dnx1
 TERRAFORM_IMAGE=public.ecr.aws/dnxsolutions/terraform:1.0.0-dnx1
 
+PARENT_PWD := $(dir $(abspath $(dir $$PWD)))
+
 RUN_AWS        =docker run -i --rm --env-file=.env --env-file=.env.assume -v $(PWD):/work -v $(HOME)/.aws:/root/.aws --entrypoint "" $(AWS_IMAGE)
 RUN_TERRAFORM  =docker run -i --rm --env-file=.env --env-file=.env.assume -v $(PWD):/work -v $(HOME)/.aws:/root/.aws --entrypoint "" $(TERRAFORM_IMAGE)
 
-ifdef CI
-	RUN_TERRAFORM  =docker run -i --rm --env-file=.env -v $(PWD):/work --entrypoint "" $(TERRAFORM_IMAGE)
-endif
+export AWS_ROLE?=InfraDeploy
+export AWS_ACCOUNT_ID?=953027019050# dnx-automation
+# AWS_ACCOUNT_ID=$(shell python3 -c "import yaml;print(yaml.safe_load(open('one.yaml'))['workspaces']['$(WORKSPACE)']['aws_account_id'])")
 
 export ASSUME_REQUIRED?=assume-role
-export AWS_ROLE?=InfraDeployAccess
+
+STACK_NAME := $(shell basename $$PWD)
+CLIENT := $(shell echo ${WORKSPACE} | cut  -d'-' -f1)
 
 ############################
 # Env and Authentication
@@ -24,7 +28,6 @@ env-%: # Check for specific environment variables
 	cp .env.template .env
 	echo >> .env
 	touch .env.assume
-.PHONY: .env	
 
 assume-role: .env
 	echo > .env.assume
@@ -40,7 +43,8 @@ clean-dotenv:
 ######################
 
 _init:
-	terraform init
+	rm -rf .terraform terraform.tfstate* terraform.tfstate.d ||:
+	terraform init 
 	terraform workspace new $(WORKSPACE) 2>/dev/null; true # ignore if workspace already exists
 	terraform workspace "select" $(WORKSPACE)
 
@@ -63,7 +67,7 @@ _output:
 # Entry Points
 ######################
 
-init: .env env-WORKSPACE
+init: .env env-WORKSPACE 
 	$(RUN_TERRAFORM) make _init
 .PHONY: init
 
@@ -75,7 +79,7 @@ validate: .env
 	$(RUN_TERRAFORM) make _validate
 .PHONY: validate
 
-apply: .env $(ASSUME_REQUIRED) env-WORKSPACE
+apply: .env env-WORKSPACE
 	$(RUN_TERRAFORM) make _apply
 .PHONY: apply
 
@@ -91,7 +95,7 @@ output:
 # Utilities
 ######################
 
-shell: .env
+shell: .env 
 	docker run -it --rm  --env-file=.env --env-file=.env.assume -v $(PWD):/work -v $(HOME)/.aws:/root/.aws --entrypoint "/bin/bash" $(TERRAFORM_IMAGE)
 .PHONY: shell
 
