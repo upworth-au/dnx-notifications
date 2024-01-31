@@ -1,0 +1,7 @@
+aws_region: ap-southeast-2
+aws_account_id: "917857075661" # dev
+org_name: upworth 
+notifications_dnx:
+  enabled: true
+  email: "" # optional
+  slack_endpoint: "https://hooks.slack.com/services/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" # optional
