@@ -1,0 +1,71 @@
+name: infra-network
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace:
+        description: 'Select the Environement to run'
+        type: choice
+        options: 
+          - upworth-nonprod-ap-southeast-2-default
+          - upworth-prod-ap-southeast-2-default
+        required: true
+      apply:
+        description: 'Apply changes to Stack (Terraform Apply)'
+        type: boolean
+        default: false
+
+permissions: read-all
+
+jobs:
+  network:
+    name: Network - ${{ github.event.inputs.workspace }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.workspace }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:        
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        
+      - name: Configure aws credentials
+        id: credentials
+        with:
+          role-to-assume: arn:aws:iam::315424472687:role/role-provider-ci-github
+          aws-region: ap-southeast-2
+          role-duration-seconds: 1800
+        uses: aws-actions/configure-aws-credentials@v2
+
+      - name: Terraform Init - ${{ github.event.inputs.workspace }}
+        id: Init
+        run: |
+          export WORKSPACE=${{ github.event.inputs.workspace }}
+          cd network
+          make init
+        continue-on-error: false
+
+      - name: Terraform Validate - ${{ github.event.inputs.workspace }}
+        id: validate
+        run: |
+          export WORKSPACE=${{ github.event.inputs.workspace }}
+          cd network
+          make validate
+        continue-on-error: false
+
+      - name: Terraform Plan - ${{ github.event.inputs.workspace }}
+        id: Plan
+        run: |
+          export WORKSPACE=${{ github.event.inputs.workspace }}
+          cd network
+          make plan
+        continue-on-error: false
+
+      - name: Terraform Apply - ${{ github.event.inputs.workspace }}
+        id: Apply
+        if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.workspace != '' && github.event.inputs.apply == 'true' }}
+        run: |
+          export WORKSPACE=${{ github.event.inputs.workspace }}
+          cd network
+          make apply
+        continue-on-error: false
