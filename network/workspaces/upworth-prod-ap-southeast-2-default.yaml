@@ -4,4 +4,4 @@ org_name: upworth
 notifications_dnx:
   enabled: true
   email: "" # optional
-  slack_endpoint: "https://hooks.slack.com/services/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" # optional
+  slack_endpoint: "https://hooks.slack.com/services/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" # optional
