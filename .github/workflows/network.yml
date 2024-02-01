@@ -7,8 +7,8 @@ on:
         description: 'Select the Environement to run'
         type: choice
         options: 
-          - upworth-nonprod-ap-southeast-2-default
-          - upworth-prod-ap-southeast-2-default
+          - nonprod-ap-southeast-2
+          - prod-ap-southeast-2
         required: true
       apply:
         description: 'Apply changes to Stack (Terraform Apply)'
